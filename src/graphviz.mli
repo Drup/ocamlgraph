@@ -409,6 +409,7 @@ module Dot
      module E : sig type t val src : t -> V.t val dst : t -> V.t end
      val iter_vertex : (V.t -> unit) -> t -> unit
      val iter_edges_e : (E.t -> unit) -> t -> unit
+     val is_directed : bool
 
      (** Graph, vertex and edge attributes. *)
 
@@ -506,6 +507,7 @@ module Neato
 
      val iter_vertex : (V.t -> unit) -> t -> unit
      val iter_edges_e : (E.t -> unit) -> t -> unit
+     val is_directed : bool
 
      (** Graph, vertex and edge attributes. *)
 

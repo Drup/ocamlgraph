@@ -432,12 +432,6 @@ module type ENGINE = sig
   (** The litteral name of the engine. *)
   val name: string
 
-  (** The keyword for graphs ("digraph" for dot, "graph" for neato) *)
-  val opening: string
-
-  (** The litteral for edge arrows ("->" for dot, "--" for neato) *)
-  val edge_arrow: string
-
 end
 
 module type GRAPH = sig
@@ -450,6 +444,8 @@ module MakeEngine
      type t
      module V : sig type t end
      module E : sig type t val src : t -> V.t val dst : t -> V.t end
+
+     val is_directed : bool
 
      val iter_vertex : (V.t -> unit) -> t -> unit
      val iter_edges_e : (E.t -> unit) -> t -> unit
@@ -471,6 +467,12 @@ struct
     command := cmd
 
   exception Error of string
+
+  let opening =
+    if X.is_directed then "digraph" else "graph"
+
+  let edge_arrow =
+    if X.is_directed then "->" else "--"
 
   let handle_error f arg =
     try
@@ -570,7 +572,7 @@ struct
       X.iter_edges_e (function edge ->
         fprintf ppf "%s %s %s%a;@ "
           (X.vertex_name (X.E.src edge))
-          EN.edge_arrow
+          edge_arrow
           (X.vertex_name (X.E.dst edge))
           (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
           (X.edge_attributes edge)
@@ -579,7 +581,7 @@ struct
     in
 
     fprintf ppf "@[<v>%s G {@ @[<v 2>  %a"
-      EN.opening
+      opening
       fprint_graph_attributes (X.graph_attributes graph);
     fprintf ppf "%t@ " print_nodes;
     fprintf ppf "%t@ " print_subgraphs;
@@ -857,8 +859,6 @@ module Dot =
   MakeEngine (struct
                 module Attributes = DotAttributes
                 let name = "dot"
-                let opening = "digraph"
-                let edge_arrow = "->"
               end)
 
 (***************************************************************************)
@@ -951,8 +951,6 @@ module Neato =
   MakeEngine (struct
                 module Attributes = NeatoAttributes
                 let name = "neato"
-                let opening = "graph"
-                let edge_arrow = "--"
               end)
 
 (*
