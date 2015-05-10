@@ -46,6 +46,9 @@ type color_with_transparency = int32
 
 val color_to_color_with_transparency: color -> color_with_transparency
 
+type symbseq =
+  | COMMA
+  | SEMI
 
 type arrow_style =
   [ `None | `Normal | `Inv | `Dot | `Odot | `Invdot | `Invodot ]
@@ -65,6 +68,10 @@ module type ATTRIBUTES = sig
     sg_attributes : vertex list; (** Box attributes. *)
     sg_parent : string option;   (** Nested subgraphs. *)
   }
+
+  val fprint_graph:formatter -> graph -> unit
+  val fprint_vertex_list: symbseq -> formatter -> vertex list -> unit
+  val fprint_edge_list: symbseq -> formatter -> edge list -> unit
 
 end
 
@@ -225,6 +232,11 @@ module CommonAttributes : sig
             simultaneously. *)
     ]
 
+  include ATTRIBUTES
+    with type graph := graph
+     and type edge := edge
+     and type vertex := vertex
+
 end
 
 (***************************************************************************)
@@ -365,12 +377,10 @@ module DotAttributes : sig
             [1]. *)
     ]
 
-  (** Subgraphs have a name and some vertices. *)
-  type subgraph = {
-    sg_name : string;
-    sg_attributes : vertex list;
-    sg_parent : string option;
-  }
+  include ATTRIBUTES
+    with type graph := graph
+     and type edge := edge
+     and type vertex := vertex
 
 end
 
@@ -487,12 +497,10 @@ module NeatoAttributes : sig
         (** Strength of edge spring.  Default value is [1.0]. *)
     ]
 
-  (** Subgraphs have a name and some vertices. *)
-  type subgraph = {
-    sg_name : string;
-    sg_attributes : vertex list;
-    sg_parent : string option;
-  }
+  include ATTRIBUTES
+    with type graph := graph
+     and type edge := edge
+     and type vertex := vertex
 
 end
 

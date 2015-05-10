@@ -110,6 +110,10 @@ module type ATTRIBUTES = sig
     sg_parent : string option;   (** Nested subgraphs. *)
   }
 
+  val fprint_graph:formatter -> graph -> unit
+  val fprint_vertex_list: symbseq -> formatter -> vertex list -> unit
+  val fprint_edge_list: symbseq -> formatter -> edge list -> unit
+
 end
 
 (** The [CommonAttributes] module defines attributes for graphs, nodes and
@@ -413,6 +417,13 @@ module CommonAttributes = struct
     let fprint_edge_list =
       fprint_attributes fprint_style_list fprint_edge
 
+  (** Attributes of (optional) boxes around vertices. *)
+  type subgraph = {
+    sg_name : string;            (** Box name. *)
+    sg_attributes : vertex list; (** Box attributes. *)
+    sg_parent : string option;   (** Nested subgraphs. *)
+  }
+
 end
 
 
@@ -424,9 +435,6 @@ module type ENGINE = sig
 
   module Attributes : sig
     include ATTRIBUTES
-    val fprint_graph:formatter -> graph -> unit
-    val fprint_vertex_list: symbseq -> formatter -> vertex list -> unit
-    val fprint_edge_list: symbseq -> formatter -> edge list -> unit
   end
 
 
