@@ -75,6 +75,22 @@ module type ATTRIBUTES = sig
 
 end
 
+(** The [ENGINE] module type defines the output interface for the engines. *)
+module type ENGINE = sig
+
+  (** A graph *)
+  type t
+
+  val fprint_graph: formatter -> t -> unit
+  (** [fprint_graph ppf graph] pretty prints the graph [graph] in
+      the CGL language on the formatter [ppf]. *)
+
+  val output_graph: out_channel -> t -> unit
+  (** [output_graph oc graph] pretty prints the graph [graph] in the dot
+      language on the channel [oc]. *)
+
+end
+
 (*-------------------------------------------------------------------------*)
 (** {3 Common attributes} *)
 
@@ -437,18 +453,7 @@ module Dot
      val default_edge_attributes: t -> DotAttributes.edge list
      val edge_attributes: E.t -> DotAttributes.edge list
 
-   end) :
-sig
-
-  val fprint_graph: formatter -> X.t -> unit
-    (** [fprint_graph ppf graph] pretty prints the graph [graph] in
-        the CGL language on the formatter [ppf]. *)
-
-  val output_graph: out_channel -> X.t -> unit
-    (** [output_graph oc graph] pretty prints the graph [graph] in the dot
-        language on the channel [oc]. *)
-
-end
+   end) : ENGINE with type t = X.t
 
 (***************************************************************************)
 (** {2 The neato engine} *)
@@ -533,18 +538,46 @@ module Neato
      val default_edge_attributes: t -> NeatoAttributes.edge list
      val edge_attributes: E.t -> NeatoAttributes.edge list
 
-   end) :
-sig
+   end) : ENGINE with type t = X.t
 
-  val fprint_graph: formatter -> X.t -> unit
-    (** [fprint_graph ppf graph] pretty prints the graph [graph] in
-        the CGL language on the formatter [ppf]. *)
 
-  val output_graph: out_channel -> X.t -> unit
-    (** [output_graph oc graph] pretty prints the graph [graph] in the dot
-        language on the channel [oc]. *)
+(** {2 General engine} *)
 
+(** Graph signature parametrized by attributes *)
+module GraphWithAttrs (A:ATTRIBUTES) : sig
+  module type T = sig
+    type t
+    module V : sig type t end
+    module E : sig type t val src : t -> V.t val dst : t -> V.t end
+
+    val is_directed : bool
+
+    val iter_vertex : (V.t -> unit) -> t -> unit
+    val iter_edges_e : (E.t -> unit) -> t -> unit
+
+    (** Graph, vertex and edge attributes. *)
+    val graph_attributes: t -> A.graph list
+
+    (** Vertex attributes *)
+    val default_vertex_attributes: t -> A.vertex list
+    val vertex_name : V.t -> string
+    val vertex_attributes: V.t -> A.vertex list
+
+    (** Edge attributes *)
+    val default_edge_attributes: t -> A.edge list
+    val edge_attributes: E.t -> A.edge list
+
+    val get_subgraph : V.t -> A.subgraph option
+    (** The box (if exists) which the vertex belongs to. Boxes with same
+           names are not distinguished and so they should have the same
+           attributes. *)
+  end
 end
+
+module MakeEngine
+    (A: ATTRIBUTES)
+    (X : GraphWithAttrs(A).T)
+  : ENGINE with type t = X.t
 
 (*
 Local Variables:

@@ -430,44 +430,62 @@ end
 (*-------------------------------------------------------------------------*)
 (** {3 The [MakeEngine] functor} *)
 
-(** An engine is described by a module of the following signature. *)
+(** Graph with attributes *)
+module GraphWithAttrs (A:ATTRIBUTES) = struct
+  module type T = sig
+    type t
+    module V : sig type t end
+    module E : sig type t val src : t -> V.t val dst : t -> V.t end
+
+    val is_directed : bool
+
+    val iter_vertex : (V.t -> unit) -> t -> unit
+    val iter_edges_e : (E.t -> unit) -> t -> unit
+
+    (** Graph, vertex and edge attributes. *)
+    val graph_attributes: t -> A.graph list
+
+    (** Vertex attributes *)
+    val default_vertex_attributes: t -> A.vertex list
+    val vertex_name : V.t -> string
+    val vertex_attributes: V.t -> A.vertex list
+
+    (** Edge attributes *)
+    val default_edge_attributes: t -> A.edge list
+    val edge_attributes: E.t -> A.edge list
+
+    val get_subgraph : V.t -> A.subgraph option
+    (** The box (if exists) which the vertex belongs to. Boxes with same
+           names are not distinguished and so they should have the same
+           attributes. *)
+  end
+end
+
+(** The output signature of the MakeEngine functor. *)
 module type ENGINE = sig
 
-  module Attributes : sig
-    include ATTRIBUTES
-  end
+  (** A graph *)
+  type t
 
+  val fprint_graph: formatter -> t -> unit
+  (** [fprint_graph ppf graph] pretty prints the graph [graph] in
+      the CGL language on the formatter [ppf]. *)
+
+  val output_graph: out_channel -> t -> unit
+  (** [output_graph oc graph] pretty prints the graph [graph] in the dot
+      language on the channel [oc]. *)
 
 end
 
-module type GRAPH = sig
-
-end
 
 module MakeEngine
-  (EN: ENGINE)
-  (X : sig
-     type t
-     module V : sig type t end
-     module E : sig type t val src : t -> V.t val dst : t -> V.t end
-
-     val is_directed : bool
-
-     val iter_vertex : (V.t -> unit) -> t -> unit
-     val iter_edges_e : (E.t -> unit) -> t -> unit
-
-     val graph_attributes: t -> EN.Attributes.graph list
-
-     val default_vertex_attributes: t -> EN.Attributes.vertex list
-     val vertex_name : V.t -> string
-     val vertex_attributes: V.t -> EN.Attributes.vertex list
-
-     val default_edge_attributes: t -> EN.Attributes.edge list
-     val edge_attributes: E.t -> EN.Attributes.edge list
-     val get_subgraph : V.t -> EN.Attributes.subgraph option
-   end) =
+  (A: ATTRIBUTES)
+  (X : GraphWithAttrs(A).T)
+  : ENGINE with type t = X.t
+=
 struct
 
+  type t = X.t
 
   let opening =
     if X.is_directed then "digraph" else "graph"
@@ -480,7 +498,7 @@ struct
       by a ";". *)
   let fprint_graph_attributes ppf list =
     List.iter (function att ->
-      fprintf ppf "%a;@ " EN.Attributes.fprint_graph att
+      fprintf ppf "%a;@ " A.fprint_graph att
     ) list
 
   (** [fprint_graph ppf graph] pretty prints the graph [graph] in
@@ -495,7 +513,7 @@ struct
       let default_node_attributes = X.default_vertex_attributes graph in
       if default_node_attributes  <> [] then
         fprintf ppf "node%a;@ "
-          (fprint_square_not_empty (EN.Attributes.fprint_vertex_list COMMA))
+          (fprint_square_not_empty (A.fprint_vertex_list COMMA))
           default_node_attributes;
 
       X.iter_vertex
@@ -504,16 +522,16 @@ struct
             | None -> ()
             | Some sg ->
               let (sg, nodes) =
-                if SG.mem sg.EN.Attributes.sg_name !subgraphs then
-                  SG.find sg.EN.Attributes.sg_name !subgraphs
+                if SG.mem sg.A.sg_name !subgraphs then
+                  SG.find sg.A.sg_name !subgraphs
                 else
                   (sg, [])
               in
-              subgraphs := SG.add sg.EN.Attributes.sg_name (sg, node :: nodes) !subgraphs
+              subgraphs := SG.add sg.A.sg_name (sg, node :: nodes) !subgraphs
           end;
           fprintf ppf "%s%a;@ "
             (X.vertex_name node)
-            (fprint_square_not_empty (EN.Attributes.fprint_vertex_list COMMA))
+            (fprint_square_not_empty (A.fprint_vertex_list COMMA))
             (X.vertex_attributes node)
         )
         graph
@@ -526,13 +544,13 @@ struct
         () (* no more work to do, so terminate *)
       | name :: worklist ->
         let sg, nodes = SG.find name !subgraphs in
-        let children = SG.filter (fun n (sg, nodes) -> sg.EN.Attributes.sg_parent = Some name) !subgraphs in
+        let children = SG.filter (fun n (sg, nodes) -> sg.A.sg_parent = Some name) !subgraphs in
         fprintf ppf "@[<v 2>subgraph cluster_%s { %a%t@ %t };@]@\n"
 
           name
 
-          (EN.Attributes.fprint_vertex_list SEMI)
-          sg.EN.Attributes.sg_attributes
+          (A.fprint_vertex_list SEMI)
+          sg.A.sg_attributes
 
           (fun ppf ->
              (List.iter (fun n -> fprintf ppf "%s;" (X.vertex_name n)) nodes)
@@ -546,7 +564,7 @@ struct
     in
 
     let print_subgraphs ppf =
-      let root_worklist = SG.filter (fun n (sg, nodes) -> sg.EN.Attributes.sg_parent = None) !subgraphs in
+      let root_worklist = SG.filter (fun n (sg, nodes) -> sg.A.sg_parent = None) !subgraphs in
       print_nested_subgraphs ppf (List.map fst (SG.bindings root_worklist))
     in
 
@@ -557,7 +575,7 @@ struct
       let default_edge_attributes = X.default_edge_attributes graph in
       if default_edge_attributes <> [] then
         fprintf ppf "edge%a;@ "
-          (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
+          (fprint_square_not_empty (A.fprint_edge_list COMMA))
           default_edge_attributes;
 
       X.iter_edges_e (function edge ->
@@ -565,7 +583,7 @@ struct
           (X.vertex_name (X.E.src edge))
           edge_arrow
           (X.vertex_name (X.E.dst edge))
-          (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
+          (fprint_square_not_empty (A.fprint_edge_list COMMA))
           (X.edge_attributes edge)
       ) graph
 
@@ -846,10 +864,7 @@ module type GraphWithDotAttrs = sig
            attributes. *)
 end
 
-module Dot =
-  MakeEngine (struct
-                module Attributes = DotAttributes
-              end)
+module Dot = MakeEngine (DotAttributes)
 
 (***************************************************************************)
 (** {2 Interface with the neato engine} *)
@@ -938,9 +953,7 @@ module NeatoAttributes = struct
 end
 
 module Neato =
-  MakeEngine (struct
-                module Attributes = NeatoAttributes
-              end)
+  MakeEngine (NeatoAttributes)
 
 (*
 Local Variables:
