@@ -477,123 +477,123 @@ struct
       f arg
     with
         Error msg ->
-          Printf.eprintf "%s: %s failure\n   %s\n"
+        Printf.eprintf "%s: %s failure\n   %s\n"
           Sys.argv.(0) EN.name msg;
-          flush stderr;
-          exit 2
+        flush stderr;
+        exit 2
 
-    (** [fprint_graph_attributes ppf list] pretty prints a list of
-        graph attributes on the formatter [ppf].  Attributes are separated
-        by a ";". *)
-    let fprint_graph_attributes ppf list =
-       List.iter (function att ->
-         fprintf ppf "%a;@ " EN.Attributes.fprint_graph att
-       ) list
+  (** [fprint_graph_attributes ppf list] pretty prints a list of
+      graph attributes on the formatter [ppf].  Attributes are separated
+      by a ";". *)
+  let fprint_graph_attributes ppf list =
+    List.iter (function att ->
+      fprintf ppf "%a;@ " EN.Attributes.fprint_graph att
+    ) list
 
-    (** [fprint_graph ppf graph] pretty prints the graph [graph] in
-        the CGL language on the formatter [ppf]. *)
-    let fprint_graph ppf graph =
-      let module SG = Map.Make(String) in
-      let subgraphs = ref SG.empty in
+  (** [fprint_graph ppf graph] pretty prints the graph [graph] in
+      the CGL language on the formatter [ppf]. *)
+  let fprint_graph ppf graph =
+    let module SG = Map.Make(String) in
+    let subgraphs = ref SG.empty in
 
-      (* Printing nodes. *)
+    (* Printing nodes. *)
 
-      let print_nodes ppf =
-        let default_node_attributes = X.default_vertex_attributes graph in
-          if default_node_attributes  <> [] then
-            fprintf ppf "node%a;@ "
-              (fprint_square_not_empty (EN.Attributes.fprint_vertex_list COMMA))
-              default_node_attributes;
+    let print_nodes ppf =
+      let default_node_attributes = X.default_vertex_attributes graph in
+      if default_node_attributes  <> [] then
+        fprintf ppf "node%a;@ "
+          (fprint_square_not_empty (EN.Attributes.fprint_vertex_list COMMA))
+          default_node_attributes;
 
-            X.iter_vertex
-              (function node ->
-                begin match X.get_subgraph node with
-                | None -> ()
-                | Some sg ->
-                    let (sg, nodes) =
-                      if SG.mem sg.EN.Attributes.sg_name !subgraphs then
-                        SG.find sg.EN.Attributes.sg_name !subgraphs
-                      else
-                        (sg, [])
-                    in
-                      subgraphs := SG.add sg.EN.Attributes.sg_name (sg, node :: nodes) !subgraphs
-                end;
-                fprintf ppf "%s%a;@ "
-                  (X.vertex_name node)
-                  (fprint_square_not_empty (EN.Attributes.fprint_vertex_list COMMA))
-                  (X.vertex_attributes node)
-              )
-              graph
-      in
+      X.iter_vertex
+        (function node ->
+          begin match X.get_subgraph node with
+            | None -> ()
+            | Some sg ->
+              let (sg, nodes) =
+                if SG.mem sg.EN.Attributes.sg_name !subgraphs then
+                  SG.find sg.EN.Attributes.sg_name !subgraphs
+                else
+                  (sg, [])
+              in
+              subgraphs := SG.add sg.EN.Attributes.sg_name (sg, node :: nodes) !subgraphs
+          end;
+          fprintf ppf "%s%a;@ "
+            (X.vertex_name node)
+            (fprint_square_not_empty (EN.Attributes.fprint_vertex_list COMMA))
+            (X.vertex_attributes node)
+        )
+        graph
+    in
 
-      (* Printing subgraphs *)
+    (* Printing subgraphs *)
 
-      let rec print_nested_subgraphs ppf = function
-        | [] ->
-            () (* no more work to do, so terminate *)
-        | name :: worklist ->
-            let sg, nodes = SG.find name !subgraphs in
-            let children = SG.filter (fun n (sg, nodes) -> sg.EN.Attributes.sg_parent = Some name) !subgraphs in
-              fprintf ppf "@[<v 2>subgraph cluster_%s { %a%t@ %t };@]@\n"
+    let rec print_nested_subgraphs ppf = function
+      | [] ->
+        () (* no more work to do, so terminate *)
+      | name :: worklist ->
+        let sg, nodes = SG.find name !subgraphs in
+        let children = SG.filter (fun n (sg, nodes) -> sg.EN.Attributes.sg_parent = Some name) !subgraphs in
+        fprintf ppf "@[<v 2>subgraph cluster_%s { %a%t@ %t };@]@\n"
 
-              name
+          name
 
-              (EN.Attributes.fprint_vertex_list SEMI)
-              sg.EN.Attributes.sg_attributes
+          (EN.Attributes.fprint_vertex_list SEMI)
+          sg.EN.Attributes.sg_attributes
 
-              (fun ppf ->
-                (List.iter (fun n -> fprintf ppf "%s;" (X.vertex_name n)) nodes)
-              )
+          (fun ppf ->
+             (List.iter (fun n -> fprintf ppf "%s;" (X.vertex_name n)) nodes)
+          )
 
-              (fun ppf ->
-                print_nested_subgraphs ppf (List.map fst (SG.bindings children))
-              );
+          (fun ppf ->
+             print_nested_subgraphs ppf (List.map fst (SG.bindings children))
+          );
 
-              print_nested_subgraphs ppf worklist
-      in
+        print_nested_subgraphs ppf worklist
+    in
 
-      let print_subgraphs ppf =
-        let root_worklist = SG.filter (fun n (sg, nodes) -> sg.EN.Attributes.sg_parent = None) !subgraphs in
-          print_nested_subgraphs ppf (List.map fst (SG.bindings root_worklist))
-      in
+    let print_subgraphs ppf =
+      let root_worklist = SG.filter (fun n (sg, nodes) -> sg.EN.Attributes.sg_parent = None) !subgraphs in
+      print_nested_subgraphs ppf (List.map fst (SG.bindings root_worklist))
+    in
 
-      (* Printing edges *)
+    (* Printing edges *)
 
-      let print_edges ppf =
+    let print_edges ppf =
 
-        let default_edge_attributes = X.default_edge_attributes graph in
-        if default_edge_attributes <> [] then
-          fprintf ppf "edge%a;@ "
-            (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
-            default_edge_attributes;
+      let default_edge_attributes = X.default_edge_attributes graph in
+      if default_edge_attributes <> [] then
+        fprintf ppf "edge%a;@ "
+          (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
+          default_edge_attributes;
 
-        X.iter_edges_e (function edge ->
-                          fprintf ppf "%s %s %s%a;@ "
-                            (X.vertex_name (X.E.src edge))
-                            EN.edge_arrow
-                            (X.vertex_name (X.E.dst edge))
-                            (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
-                            (X.edge_attributes edge)
-                       ) graph
+      X.iter_edges_e (function edge ->
+        fprintf ppf "%s %s %s%a;@ "
+          (X.vertex_name (X.E.src edge))
+          EN.edge_arrow
+          (X.vertex_name (X.E.dst edge))
+          (fprint_square_not_empty (EN.Attributes.fprint_edge_list COMMA))
+          (X.edge_attributes edge)
+      ) graph
 
-      in
+    in
 
-      fprintf ppf "@[<v>%s G {@ @[<v 2>  %a"
-        EN.opening
-        fprint_graph_attributes (X.graph_attributes graph);
-      fprintf ppf "%t@ " print_nodes;
-      fprintf ppf "%t@ " print_subgraphs;
-      fprintf ppf "%t@ " print_edges;
-      fprintf ppf "@]}@]"
+    fprintf ppf "@[<v>%s G {@ @[<v 2>  %a"
+      EN.opening
+      fprint_graph_attributes (X.graph_attributes graph);
+    fprintf ppf "%t@ " print_nodes;
+    fprintf ppf "%t@ " print_subgraphs;
+    fprintf ppf "%t@ " print_edges;
+    fprintf ppf "@]}@]"
 
-    (** [output_graph oc graph] pretty prints the graph [graph] in the dot
-        language on the channel [oc]. *)
-    let output_graph oc graph =
-      let ppf = formatter_of_out_channel oc in
-      fprint_graph ppf graph;
-      pp_print_flush ppf ()
+  (** [output_graph oc graph] pretty prints the graph [graph] in the dot
+      language on the channel [oc]. *)
+  let output_graph oc graph =
+    let ppf = formatter_of_out_channel oc in
+    fprint_graph ppf graph;
+    pp_print_flush ppf ()
 
-  end
+end
 
 (***************************************************************************)
 (** {2 Interface with the dot engine} *)
@@ -910,40 +910,40 @@ module NeatoAttributes = struct
         (** Strength of edge spring.  Default value is [1.0]. *)
     ]
 
-    type subgraph = {
-      sg_name : string;
-      sg_attributes : vertex list;
-      sg_parent : string option;
-    }
+  type subgraph = {
+    sg_name : string;
+    sg_attributes : vertex list;
+    sg_parent : string option;
+  }
 
   (** {4 Pretty-print of attributes} *)
 
-    let fprint_graph ppf = function
-        #CommonAttributes.graph as att -> CommonAttributes.fprint_graph ppf att
-      | `Margin (f1, f2) -> fprintf ppf "margin=\"%f,%f\"" f1 f2
-      | `Start i -> fprintf ppf "start=%i" i
-      | `Overlap b -> fprintf ppf "overlap=%b" b
-      | `Spline b -> fprintf ppf "spline=%b" b
-      | `Sep f -> fprintf ppf "sep=%f" f
+  let fprint_graph ppf = function
+    #CommonAttributes.graph as att -> CommonAttributes.fprint_graph ppf att
+    | `Margin (f1, f2) -> fprintf ppf "margin=\"%f,%f\"" f1 f2
+    | `Start i -> fprintf ppf "start=%i" i
+    | `Overlap b -> fprintf ppf "overlap=%b" b
+    | `Spline b -> fprintf ppf "splines=%b" b
+    | `Sep f -> fprintf ppf "sep=%f" f
 
-    let fprint_vertex ppf = function
-        #CommonAttributes.vertex as att ->
-          CommonAttributes.fprint_vertex ppf att
-      | `Pos (f1, f2) -> fprintf ppf "pos=\"%f,%f\"" f1 f2
+  let fprint_vertex ppf = function
+    #CommonAttributes.vertex as att ->
+    CommonAttributes.fprint_vertex ppf att
+    | `Pos (f1, f2) -> fprintf ppf "pos=\"%f,%f\"" f1 f2
 
-    let fprint_edge ppf = function
-        #CommonAttributes.edge as att -> CommonAttributes.fprint_edge ppf att
-      | `Id s -> fprintf ppf "id=%a" fprint_string s
-      | `Len f -> fprintf ppf "len=%f" f
-      | `Weight f -> fprintf ppf "weight=%f" f
+  let fprint_edge ppf = function
+    #CommonAttributes.edge as att -> CommonAttributes.fprint_edge ppf att
+    | `Id s -> fprintf ppf "id=%a" fprint_string s
+    | `Len f -> fprintf ppf "len=%f" f
+    | `Weight f -> fprintf ppf "weight=%f" f
 
-    let fprint_vertex_list =
-      CommonAttributes.fprint_attributes
-        CommonAttributes.fprint_style_list fprint_vertex
+  let fprint_vertex_list =
+    CommonAttributes.fprint_attributes
+      CommonAttributes.fprint_style_list fprint_vertex
 
-    let fprint_edge_list =
-      CommonAttributes.fprint_attributes
-        CommonAttributes.fprint_style_list fprint_edge
+  let fprint_edge_list =
+    CommonAttributes.fprint_attributes
+      CommonAttributes.fprint_style_list fprint_edge
 
 end
 
