@@ -429,8 +429,6 @@ module type ENGINE = sig
     val fprint_edge_list: symbseq -> formatter -> edge list -> unit
   end
 
-  (** The litteral name of the engine. *)
-  val name: string
 
 end
 
@@ -462,27 +460,12 @@ module MakeEngine
    end) =
 struct
 
-  let command = ref EN.name
-  let set_command cmd =
-    command := cmd
-
-  exception Error of string
 
   let opening =
     if X.is_directed then "digraph" else "graph"
 
   let edge_arrow =
     if X.is_directed then "->" else "--"
-
-  let handle_error f arg =
-    try
-      f arg
-    with
-        Error msg ->
-        Printf.eprintf "%s: %s failure\n   %s\n"
-          Sys.argv.(0) EN.name msg;
-        flush stderr;
-        exit 2
 
   (** [fprint_graph_attributes ppf list] pretty prints a list of
       graph attributes on the formatter [ppf].  Attributes are separated
@@ -858,7 +841,6 @@ end
 module Dot =
   MakeEngine (struct
                 module Attributes = DotAttributes
-                let name = "dot"
               end)
 
 (***************************************************************************)
@@ -950,7 +932,6 @@ end
 module Neato =
   MakeEngine (struct
                 module Attributes = NeatoAttributes
-                let name = "neato"
               end)
 
 (*

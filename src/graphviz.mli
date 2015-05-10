@@ -528,15 +528,6 @@ module Neato
    end) :
 sig
 
-  val set_command: string -> unit
-    (** Several functions provided by this module run the external program
-        {i neato}.  By default, this command is supposed to be in the default
-        path and is invoked by {i neato}.  The function
-        [set_command] allows to set an alternative path at run time. *)
-
-  exception Error of string
-  val handle_error: ('a -> 'b) -> 'a -> 'b
-
   val fprint_graph: formatter -> X.t -> unit
     (** [fprint_graph ppf graph] pretty prints the graph [graph] in
         the CGL language on the formatter [ppf]. *)
