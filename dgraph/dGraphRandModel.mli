@@ -25,8 +25,8 @@
 
 module G: Graph.Sig.G
 
-module GraphAttrs: 
-  Graph.Graphviz.GraphWithDotAttrs with type t = G.t
+module GraphAttrs:
+  XDot.S with type t = G.t
 				   and type V.t = G.V.t
 				   and type E.t = G.E.t
 

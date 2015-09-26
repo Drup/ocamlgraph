@@ -27,7 +27,7 @@ open Graph
 
 module type S = sig
 
-  module Tree: Graphviz.GraphWithDotAttrs
+  module Tree: XDot.S
 
   module TreeManipulation : sig
     type t
@@ -51,7 +51,7 @@ end
 
 module Build
   (G: Sig.G)
-  (T: Graphviz.GraphWithDotAttrs with type V.label = G.V.t)
+  (T: XDot.S with type V.label = G.V.t)
   (TM: DGraphSubTree.S with type Tree.t = T.t
 		       and type Tree.V.t = T.V.t
 		       and type Tree.E.t = T.E.t) =
@@ -145,7 +145,7 @@ struct
 
 end
 
-module SubTreeMake(G: Graphviz.GraphWithDotAttrs) = struct
+module SubTreeMake(G: XDot.S) = struct
 
   module T = Imperative.Digraph.Abstract(G.V)
   module TM = DGraphSubTree.Make(G)(T)

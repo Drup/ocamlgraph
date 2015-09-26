@@ -238,7 +238,17 @@ let read_bounding_box str =
   let lower_left = (x1, -.y2) and upper_right = x2, -.y1 in
   lower_left,upper_right
 
-module Make(G : Graph.Graphviz.GraphWithDotAttrs) = struct
+
+module type S = sig
+  open Graph
+  include Sig.G
+  include Graphviz.GraphWithDotAttrs
+    with type t := t
+     and module V := V
+     and module E := E
+end
+
+module Make(G : S) = struct
 
   module HV = Hashtbl.Make(G.V)
   module HE =

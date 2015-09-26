@@ -60,7 +60,7 @@ class type ['vertex, 'edge, 'cluster] abstract_model = object
 end
 
 (** This functor creates a model from a graph *)
-module Make(G : Graph.Graphviz.GraphWithDotAttrs) : sig
+module Make(G : XDot.S) : sig
 
   open G
 

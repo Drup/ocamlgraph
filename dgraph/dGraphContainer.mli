@@ -88,7 +88,7 @@ module type S = sig
 
 end
 
-module Make(G: Graphviz.GraphWithDotAttrs) : sig
+module Make(G: XDot.S) : sig
 
   include S with type graph = G.t and type vertex = G.V.t and type edge = G.E.t
 

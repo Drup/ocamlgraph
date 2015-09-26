@@ -25,7 +25,7 @@
 
 module type S = sig
 
-  module Tree: Graph.Graphviz.GraphWithDotAttrs
+  module Tree: XDot.S
 
   module TreeManipulation : sig
     type t
@@ -48,7 +48,7 @@ module type S = sig
 end
 
 (** This functor creates a model centered on a vertex from a graph *)
-module SubTreeMake(G : Graph.Graphviz.GraphWithDotAttrs) : sig
+module SubTreeMake(G : XDot.S) : sig
 
   include S with type Tree.V.label = G.V.t
 

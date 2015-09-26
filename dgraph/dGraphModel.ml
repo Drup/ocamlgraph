@@ -62,7 +62,7 @@ end
 
 (* BUILDING A MODEL WITH AN OCAML GRAPH *)
 
-module Make(G : Graphviz.GraphWithDotAttrs) = struct
+module Make(G : XDot.S) = struct
 
   type cluster = string
   module X = XDot.Make(G)

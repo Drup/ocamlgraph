@@ -104,8 +104,17 @@ val mk_edge_layout :
 
 exception ParseError of string
 
+module type S = sig
+  open Graph
+  include Sig.G
+  include Graphviz.GraphWithDotAttrs
+    with type t := t
+     and module V := V
+     and module E := E
+end
+
 (** Instantiates a module which creates graph layouts from xdot files *)
-module Make(G : Graph.Graphviz.GraphWithDotAttrs) : sig
+module Make(G : S) : sig
 
   module HV: Hashtbl.S with type key = G.V.t
   module HE: Hashtbl.S with type key = G.E.t

@@ -370,7 +370,7 @@ struct
 
 end
 
-module Make(G: Graphviz.GraphWithDotAttrs) = struct
+module Make(G: XDot.S) = struct
 
   module FullTreeModel = DGraphTreeModel.SubTreeMake(G)
   include Build(G)(FullTreeModel)

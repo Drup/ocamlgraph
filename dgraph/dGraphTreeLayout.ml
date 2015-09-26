@@ -36,7 +36,7 @@ let the = function None -> assert false | Some a -> a
 type cluster = string
 
 module Build
-  (G: Graphviz.GraphWithDotAttrs)
+  (G: XDot.S)
   (TreeManipulation: sig val is_ghost_node: G.V.t -> bool end) =
 struct
 
@@ -197,7 +197,7 @@ end
 (* FROM GRAPH *)
 
 module Make
-  (Tree: Graphviz.GraphWithDotAttrs)
+  (Tree: XDot.S)
   (TreeManipulation: sig val is_ghost_node: Tree.V.t -> bool end) =
 struct
 
