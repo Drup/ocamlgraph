@@ -430,34 +430,38 @@ end
 (** {3 The [MakeEngine] functor} *)
 
 (** Graph with attributes *)
-module GraphWithAttrs (A:ATTRIBUTES) = struct
-  module type T = sig
-    type t
-    module V : sig type t end
-    module E : sig type t val src : t -> V.t val dst : t -> V.t end
+module type GraphWithAttrs = sig
 
-    val is_directed : bool
+  (** Attributes. Not provided by the user. *)
+  module A : ATTRIBUTES
 
-    val iter_vertex : (V.t -> unit) -> t -> unit
-    val iter_edges_e : (E.t -> unit) -> t -> unit
+  (** Sub signature of {!Graph.Sig.G} *)
 
-    (** Graph, vertex and edge attributes. *)
-    val graph_attributes: t -> A.graph list
+  type t
+  module V : sig type t end
+  module E : sig type t val src : t -> V.t val dst : t -> V.t end
 
-    (** Vertex attributes *)
-    val default_vertex_attributes: t -> A.vertex list
-    val vertex_name : V.t -> string
-    val vertex_attributes: V.t -> A.vertex list
+  val is_directed : bool
 
-    (** Edge attributes *)
-    val default_edge_attributes: t -> A.edge list
-    val edge_attributes: E.t -> A.edge list
+  val iter_vertex : (V.t -> unit) -> t -> unit
+  val iter_edges_e : (E.t -> unit) -> t -> unit
 
-    val get_subgraph : V.t -> A.subgraph option
-    (** The box (if exists) which the vertex belongs to. Boxes with same
-           names are not distinguished and so they should have the same
-           attributes. *)
-  end
+  (** Graph, vertex and edge attributes. *)
+  val graph_attributes: t -> A.graph list
+
+  (** Vertex attributes *)
+  val default_vertex_attributes: t -> A.vertex list
+  val vertex_name : V.t -> string
+  val vertex_attributes: V.t -> A.vertex list
+
+  (** Edge attributes *)
+  val default_edge_attributes: t -> A.edge list
+  val edge_attributes: E.t -> A.edge list
+
+  val get_subgraph : V.t -> A.subgraph option
+  (** The box (if exists) which the vertex belongs to. Boxes with same
+         names are not distinguished and so they should have the same
+         attributes. *)
 end
 
 (** The output signature of the MakeEngine functor. *)
@@ -479,7 +483,7 @@ end
 
 module MakeEngine
   (A: ATTRIBUTES)
-  (X : GraphWithAttrs(A).T)
+  (X : GraphWithAttrs with module A := A)
   : ENGINE with type t = X.t
 =
 struct
@@ -842,27 +846,8 @@ module DotAttributes = struct
 end
 
 (** Graph modules with dot attributes *)
-module type GraphWithDotAttrs = sig
-  include Sig.G
-
- (** Graph, vertex and edge attributes. *)
-  val graph_attributes: t -> DotAttributes.graph list
-
-  (** Vertex attributes *)
-  val default_vertex_attributes: t -> DotAttributes.vertex list
-  val vertex_name : V.t -> string
-  val vertex_attributes: V.t -> DotAttributes.vertex list
-
-  (** Edge attributes *)
-  val default_edge_attributes: t -> DotAttributes.edge list
-  val edge_attributes: E.t -> DotAttributes.edge list
-
-  val get_subgraph : V.t -> DotAttributes.subgraph option
-    (** The box (if exists) which the vertex belongs to. Boxes with same
-           names are not distinguished and so they should have the same
-           attributes. *)
-end
-
+module type GraphWithDotAttrs =
+  GraphWithAttrs with module A := DotAttributes
 module Dot = MakeEngine (DotAttributes)
 
 (***************************************************************************)
@@ -951,8 +936,9 @@ module NeatoAttributes = struct
 
 end
 
-module Neato =
-  MakeEngine (NeatoAttributes)
+module type GraphWithNeatoAttrs =
+  GraphWithAttrs with module A := NeatoAttributes
+module Neato = MakeEngine (NeatoAttributes)
 
 (*
 Local Variables:

@@ -255,6 +255,41 @@ module CommonAttributes : sig
 
 end
 
+(** Graph with attributes *)
+module type GraphWithAttrs = sig
+
+  (** Attributes. Not provided by the user. *)
+  module A : ATTRIBUTES
+
+  (** Sub signature of {!Graph.Sig.G} *)
+
+  type t
+  module V : sig type t end
+  module E : sig type t val src : t -> V.t val dst : t -> V.t end
+
+  val is_directed : bool
+
+  val iter_vertex : (V.t -> unit) -> t -> unit
+  val iter_edges_e : (E.t -> unit) -> t -> unit
+
+  (** Graph, vertex and edge attributes. *)
+  val graph_attributes: t -> A.graph list
+
+  (** Vertex attributes *)
+  val default_vertex_attributes: t -> A.vertex list
+  val vertex_name : V.t -> string
+  val vertex_attributes: V.t -> A.vertex list
+
+  (** Edge attributes *)
+  val default_edge_attributes: t -> A.edge list
+  val edge_attributes: E.t -> A.edge list
+
+  val get_subgraph : V.t -> A.subgraph option
+  (** The box (if exists) which the vertex belongs to. Boxes with same
+         names are not distinguished and so they should have the same
+         attributes. *)
+end
+
 (***************************************************************************)
 (** {2 Interface with the dot engine} *)
 
@@ -401,59 +436,10 @@ module DotAttributes : sig
 end
 
 (** Graph module with dot attributes *)
-module type GraphWithDotAttrs = sig
+module type GraphWithDotAttrs =
+  GraphWithAttrs with module A := DotAttributes
 
-  include Sig.G
-
-  val graph_attributes: t -> DotAttributes.graph list
-
-  (** Vertex attributes *)
-
-  val default_vertex_attributes: t -> DotAttributes.vertex list
-  val vertex_name : V.t -> string
-  val vertex_attributes: V.t -> DotAttributes.vertex list
-
-  (** Edge attributes *)
-
-  val default_edge_attributes: t -> DotAttributes.edge list
-  val edge_attributes: E.t -> DotAttributes.edge list
-
-  val get_subgraph : V.t -> DotAttributes.subgraph option
-    (** The box (if exists) which the vertex belongs to. Boxes with same
-           names are not distinguished and so they should have the same
-           attributes. *)
-
-end
-
-module Dot
-  (X : sig
-
-     (** Graph implementation. Sub-signature of {!Sig.G} *)
-
-     type t
-     module V : sig type t end
-     module E : sig type t val src : t -> V.t val dst : t -> V.t end
-     val iter_vertex : (V.t -> unit) -> t -> unit
-     val iter_edges_e : (E.t -> unit) -> t -> unit
-     val is_directed : bool
-
-     (** Graph, vertex and edge attributes. *)
-
-     val graph_attributes: t -> DotAttributes.graph list
-
-     val default_vertex_attributes: t -> DotAttributes.vertex list
-     val vertex_name : V.t -> string
-     val vertex_attributes: V.t -> DotAttributes.vertex list
-
-     val get_subgraph : V.t -> DotAttributes.subgraph option
-       (** The box (if exists) which the vertex belongs to. Boxes with same
-           names are not distinguished and so they should have the same
-           attributes. *)
-
-     val default_edge_attributes: t -> DotAttributes.edge list
-     val edge_attributes: E.t -> DotAttributes.edge list
-
-   end) : ENGINE with type t = X.t
+module Dot (X : GraphWithDotAttrs) : ENGINE with type t = X.t
 
 (***************************************************************************)
 (** {2 The neato engine} *)
@@ -509,74 +495,17 @@ module NeatoAttributes : sig
 
 end
 
-module Neato
-  (X : sig
+module type GraphWithNeatoAttrs =
+  GraphWithAttrs with module A := NeatoAttributes
 
-     (** Graph implementation. Sub-signature of {!Sig.G}. *)
-
-     type t
-     module V : sig type t end
-     module E : sig type t val src : t -> V.t val dst : t -> V.t end
-
-     val iter_vertex : (V.t -> unit) -> t -> unit
-     val iter_edges_e : (E.t -> unit) -> t -> unit
-     val is_directed : bool
-
-     (** Graph, vertex and edge attributes. *)
-
-     val graph_attributes: t -> NeatoAttributes.graph list
-
-     val default_vertex_attributes: t -> NeatoAttributes.vertex list
-     val vertex_name : V.t -> string
-     val vertex_attributes: V.t -> NeatoAttributes.vertex list
-
-     val get_subgraph : V.t -> NeatoAttributes.subgraph option
-       (** The box (if exists) which the vertex belongs to. Boxes with same
-           names are not distinguished and so they should have the same
-           attributes. *)
-
-     val default_edge_attributes: t -> NeatoAttributes.edge list
-     val edge_attributes: E.t -> NeatoAttributes.edge list
-
-   end) : ENGINE with type t = X.t
+module Neato (X : GraphWithNeatoAttrs) : ENGINE with type t = X.t
 
 
 (** {2 General engine} *)
 
-(** Graph signature parametrized by attributes *)
-module GraphWithAttrs (A:ATTRIBUTES) : sig
-  module type T = sig
-    type t
-    module V : sig type t end
-    module E : sig type t val src : t -> V.t val dst : t -> V.t end
-
-    val is_directed : bool
-
-    val iter_vertex : (V.t -> unit) -> t -> unit
-    val iter_edges_e : (E.t -> unit) -> t -> unit
-
-    (** Graph, vertex and edge attributes. *)
-    val graph_attributes: t -> A.graph list
-
-    (** Vertex attributes *)
-    val default_vertex_attributes: t -> A.vertex list
-    val vertex_name : V.t -> string
-    val vertex_attributes: V.t -> A.vertex list
-
-    (** Edge attributes *)
-    val default_edge_attributes: t -> A.edge list
-    val edge_attributes: E.t -> A.edge list
-
-    val get_subgraph : V.t -> A.subgraph option
-    (** The box (if exists) which the vertex belongs to. Boxes with same
-           names are not distinguished and so they should have the same
-           attributes. *)
-  end
-end
-
 module MakeEngine
     (A: ATTRIBUTES)
-    (X : GraphWithAttrs(A).T)
+  (X : GraphWithAttrs with module A := A)
   : ENGINE with type t = X.t
 
 (*
