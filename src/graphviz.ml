@@ -23,9 +23,6 @@
       http://www.graphviz.org/
       http://www.research.att.com/sw/tools/graphviz/ *)
 
-open Format
-open Pervasives (* for compatibility with ocaml 3.12.0+dev17
-                   (incoming ocaml3.12) *)
 
 (***************************************************************************)
 (** {2 Common stuff} *)
@@ -37,6 +34,8 @@ open Pervasives (* for compatibility with ocaml 3.12.0+dev17
     two engines.  Second, given a module (of type [!ENGINE])
     describing an engine the [!MakeEngine] functor provides suitable
     interface function for it. *)
+
+let fprintf = Format.fprintf
 
 (*-------------------------------------------------------------------------*)
 (** {3 Common attributes} *)
@@ -91,8 +90,8 @@ type symbseq =
   | SEMI
 
 let fprint_symbseq ppf = function
-  | COMMA -> pp_print_string ppf ","
-  | SEMI  -> pp_print_string ppf ";"
+  | COMMA -> fprintf ppf ","
+  | SEMI  -> fprintf ppf ";"
 
 (** The [ATTRIBUTES] module type defines the interface for the engines. *)
 module type ATTRIBUTES = sig
@@ -110,9 +109,9 @@ module type ATTRIBUTES = sig
     sg_parent : string option;   (** Nested subgraphs. *)
   }
 
-  val fprint_graph:formatter -> graph -> unit
-  val fprint_vertex_list: symbseq -> formatter -> vertex list -> unit
-  val fprint_edge_list: symbseq -> formatter -> edge list -> unit
+  val fprint_graph:Format.formatter -> graph -> unit
+  val fprint_vertex_list: symbseq -> Format.formatter -> vertex list -> unit
+  val fprint_edge_list: symbseq -> Format.formatter -> edge list -> unit
 
 end
 
@@ -467,7 +466,7 @@ module type ENGINE = sig
   (** A graph *)
   type t
 
-  val fprint_graph: formatter -> t -> unit
+  val fprint_graph: Format.formatter -> t -> unit
   (** [fprint_graph ppf graph] pretty prints the graph [graph] in
       the CGL language on the formatter [ppf]. *)
 
@@ -600,9 +599,9 @@ struct
   (** [output_graph oc graph] pretty prints the graph [graph] in the dot
       language on the channel [oc]. *)
   let output_graph oc graph =
-    let ppf = formatter_of_out_channel oc in
+    let ppf = Format.formatter_of_out_channel oc in
     fprint_graph ppf graph;
-    pp_print_flush ppf ()
+    Format.pp_print_flush ppf ()
 
 end
 
